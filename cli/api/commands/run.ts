@@ -345,6 +345,8 @@ export class Runner {
             actionResult.status = dataform.ActionResult.ExecutionStatus.FAILED;
           } else if (taskStatus === dataform.TaskResult.ExecutionStatus.CANCELLED) {
             actionResult.status = dataform.ActionResult.ExecutionStatus.CANCELLED;
+          } else if (taskStatus === dataform.TaskResult.ExecutionStatus.DISABLED) {
+            actionResult.status = dataform.ActionResult.ExecutionStatus.DISABLED;
           }
         } else {
           actionResult.tasks.push({
@@ -364,7 +366,9 @@ export class Runner {
       // (i.e. it must still be RUNNING, and not FAILED).
       actionResult.status === dataform.ActionResult.ExecutionStatus.RUNNING &&
       !(this.graph.runConfig && this.graph.runConfig.disableSetMetadata) &&
-      action.type === "table"
+      action.type === "table" &&
+      // Only set metadata if this is not a BigQuery dry run
+      !this.executionOptions?.bigquery.dryRun
     ) {
       try {
         await this.dbadapter.setMetadata(action);
@@ -408,6 +412,15 @@ export class Runner {
     };
     parentAction.tasks.push(taskResult);
     this.notifyListeners();
+
+    // Disable assertions when bigquery.dryRun is true
+    if (task.type === "assertion" && options.bigquery?.dryRun) {
+      taskResult.status = dataform.TaskResult.ExecutionStatus.DISABLED;
+      taskResult.timing = timer.end();
+      this.notifyListeners();
+      return taskResult.status;
+    }
+
     try {
       // Retry this function a given number of times, configurable by user
       const { rows, metadata } = await retry(
@@ -428,7 +441,7 @@ export class Runner {
           throw new Error(`Assertion failed: query returned ${rowCount} row(s).`);
         }
       }
-      taskResult.status = dataform.TaskResult.ExecutionStatus.SUCCESSFUL;
+      //taskResult.status = dataform.TaskResult.ExecutionStatus.SUCCESSFUL;
     } catch (e) {
       taskResult.status = this.cancelled
         ? dataform.TaskResult.ExecutionStatus.CANCELLED

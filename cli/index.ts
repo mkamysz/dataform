@@ -532,7 +532,7 @@ export function runCli() {
           }
 
           if (argv[dryRunOptionName]) {
-            print("Dry running (no changes to the warehouse will be applied)...");
+            print("Dry running (no changes to the warehouse will be applied, assertions will be disabled)...");
           } else {
             print("Running...\n");
           }

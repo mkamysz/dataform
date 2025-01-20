@@ -121,6 +121,7 @@ message TaskResult {
       FAILED = 3;
       SKIPPED = 4;
       CANCELLED = 5;
+      DISABLED = 6;
   }
   ExecutionStatus status = 1;
   string error_message = 2;
